@@ -14,6 +14,8 @@
     <string>$(MARKETING_VERSION)</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Claude Island sends Apple Events to iTerm2 so that double-clicking a session can bring its iTerm2 window and tab to the foreground.</string>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright 2025. All rights reserved.</string>
 

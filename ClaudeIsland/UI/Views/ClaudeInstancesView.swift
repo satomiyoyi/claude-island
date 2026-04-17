@@ -73,6 +73,7 @@ struct ClaudeInstancesView: View {
                         session: session,
                         onFocus: { focusSession(session) },
                         onChat: { openChat(session) },
+                        onDoubleTap: { focusOrOpenChat(session) },
                         onArchive: { archiveSession(session) },
                         onApprove: { approveSession(session) },
                         onReject: { rejectSession(session) }
@@ -88,13 +89,21 @@ struct ClaudeInstancesView: View {
     // MARK: - Actions
 
     private func focusSession(_ session: SessionState) {
-        guard session.isInTmux else { return }
-
         Task {
-            if let pid = session.pid {
-                _ = await YabaiController.shared.focusWindow(forClaudePid: pid)
-            } else {
-                _ = await YabaiController.shared.focusWindow(forWorkingDirectory: session.cwd)
+            _ = await TerminalFocusCoordinator.shared.focus(session: session)
+        }
+    }
+
+    /// Double-click handler: try to focus the session's terminal window.
+    /// Falls back to opening the in-app chat detail view if no terminal
+    /// window can be located (e.g. no yabai, no iTerm2, terminal already quit).
+    private func focusOrOpenChat(_ session: SessionState) {
+        Task {
+            let focused = await TerminalFocusCoordinator.shared.focus(session: session)
+            if !focused {
+                await MainActor.run {
+                    viewModel.showChat(for: session)
+                }
             }
         }
     }
@@ -122,6 +131,7 @@ struct InstanceRow: View {
     let session: SessionState
     let onFocus: () -> Void
     let onChat: () -> Void
+    let onDoubleTap: () -> Void
     let onArchive: () -> Void
     let onApprove: () -> Void
     let onReject: () -> Void
@@ -312,7 +322,7 @@ struct InstanceRow: View {
         .padding(.vertical, 10)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            onChat()
+            onDoubleTap()
         }
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isWaitingForApproval)
         .background(
